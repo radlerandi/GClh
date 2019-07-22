@@ -2,7 +2,7 @@
 // @name             GC little helper II
 // @namespace        http://www.amshove.net
 //--> $$000
-// @version          0.9.16
+// @version          0.9.18
 //<-- $$000
 // @include          http*://www.geocaching.com/*
 // @include          http*://maps.google.tld/*
@@ -159,7 +159,7 @@ var constInit = function(c) {
     bookmark("Drafts Upload", "/my/uploadfieldnotes.aspx", c.bookmarks);
     bookmark("Pocket Queries", "/pocket/default.aspx", c.bookmarks);
     bookmark("Pocket Queries Saved", "/pocket/default.aspx#DownloadablePQs", c.bookmarks);
-    bookmark("Bookmarks", "/bookmarks/default.aspx", c.bookmarks);
+    bookmark("Bookmarks", "/account/lists", c.bookmarks);
     bookmark("Notifications", "/notify/default.aspx", c.bookmarks);
     profileSpecialBookmark("Find Player", defaultFindPlayerLink, "lnk_findplayer", c.bookmarks);
     bookmark("E-Mail", "/email/default.aspx", c.bookmarks);
@@ -469,7 +469,7 @@ var variablesInit = function(c) {
     c.settings_driving_direction_link = getValue("settings_driving_direction_link",true);
     c.settings_driving_direction_parking_area = getValue("settings_driving_direction_parking_area",false);
     c.settings_show_elevation_of_waypoints = getValue("settings_show_elevation_of_waypoints", true);
-    c.settings_primary_elevation_service = getValue("settings_primary_elevation_service", 1);
+    c.settings_primary_elevation_service = getValue("settings_primary_elevation_service", 3);
     c.settings_secondary_elevation_service = getValue("settings_secondary_elevation_service", 2);
     c.settings_distance_units = getValue("settings_distance_units", "");
     c.settings_img_warning = getValue("settings_img_warning", false);
@@ -479,7 +479,6 @@ var variablesInit = function(c) {
     c.settings_remove_banner_for_garminexpress = getValue("settings_remove_banner_for_garminexpress", false);
     c.settings_remove_banner_blue = getValue("settings_remove_banner_blue", false);
     c.settings_compact_layout_bm_lists = getValue("settings_compact_layout_bm_lists", true);
-    c.settings_compact_layout_list_of_bm_lists = getValue("settings_compact_layout_list_of_bm_lists", true);
     c.settings_compact_layout_pqs = getValue("settings_compact_layout_pqs", true);
     c.settings_compact_layout_list_of_pqs = getValue("settings_compact_layout_list_of_pqs", true);
     c.settings_compact_layout_nearest = getValue("settings_compact_layout_nearest", true);
@@ -520,6 +519,8 @@ var variablesInit = function(c) {
     c.settings_embedded_smartlink_ignorelist = getValue("settings_embedded_smartlink_ignorelist", true);
     c.settings_both_tabs_list_of_pqs_one_page = getValue("settings_both_tabs_list_of_pqs_one_page", false);
     c.settings_past_events_on_bm = getValue("settings_past_events_on_bm", true);
+    c.settings_show_log_totals = getValue("settings_show_log_totals", true);
+    c.settings_show_reviewer_as_vip = getValue("settings_show_reviewer_as_vip", true);
 
     try {
         if (c.userToken === null) {
@@ -561,7 +562,7 @@ var mainGMaps = function() {
         // Add link to GC Map on Google Maps page.
         if (settings_add_link_gc_map_on_google_maps) {
             function addGcButton(waitCount) {
-                if (document.getElementById("gbsfw")) {
+                if (document.getElementById("gbwa")) {
                     var code = "";
                     code += "function openGcMap(){";
                     code += "  var matches = document.location.href.match(/@(-?[0-9.]*),(-?[0-9.]*),([0-9.]*)z/);";
@@ -599,7 +600,7 @@ var mainGMaps = function() {
                     aTag.setAttribute("title", "Geocaching Map");
                     var url = "url('" + http + "://www.geocaching.com/images/about/logos/geocaching/Logo_Geocaching_color_notext_32.png')";
                     aTag.setAttribute("style", "display: inline-block; vertical-align: middle; height: 32px; width: 32px; background-image: " + url + ";");
-                    var side = document.getElementById("gbsfw").parentNode;
+                    var side = document.getElementById("gbwa").parentNode;
                     div.appendChild(script);
                     div.appendChild(aTag);
                     side.parentNode.insertBefore(div, side);
@@ -610,7 +611,7 @@ var mainGMaps = function() {
         // Hide left sidebar on Google Maps.
         if (settings_hide_left_sidebar_on_google_maps) {
             function hideLeftSidebar(waitCount) {
-                if ($('#gbsfw')[0] && $('.widget-pane-toggle-button')[0] && $('.widget-pane')[0]) {
+                if ($('#gbwa')[0] && $('.widget-pane-toggle-button')[0] && $('.widget-pane')[0]) {
                     if (!$('.widget-pane')[0].className.match("widget-pane-collapsed")) $('.widget-pane-toggle-button')[0].click();
                 } else {waitCount++; if (waitCount <= 60) setTimeout(function(){hideLeftSidebar(waitCount);}, 250);}
             }
@@ -1720,6 +1721,17 @@ var mainGC = function() {
         } catch(e) {gclh_error("Show the latest logs symbols",e);}
     }
 
+// Show log totals symbols at the top of cache listing.
+    if (is_page("cache_listing") && settings_show_log_totals && $('.LogTotals')[0] && $('#ctl00_ContentBody_size')[0]) {
+        try {
+            var div = document.createElement('div');
+            div.className = "gclh_LogTotals Clear";
+            div.innerHTML = $('.LogTotals')[0].innerHTML.replace(/alt="(.*?)"/g, "alt=\" \"").replace(/(&nbsp;){5}/g, "&nbsp;&nbsp;");
+            $('#ctl00_ContentBody_size')[0].parentNode.insertBefore(div, $('#ctl00_ContentBody_size')[0].nextSibling.nextSibling.nextSibling);
+            appendCssStyle('.gclh_LogTotals {float: right;} .gclh_LogTotals img {vertical-align: bottom;}');
+        } catch(e) {gclh_error("Show log totals symbols at the top",e);}
+    }
+
 // Copy GC Code to clipboard.
     if (is_page('cache_listing') && $('.CoordInfoLink')[0] && $('#ctl00_ContentBody_CoordInfoLinkControl1_uxCoordInfoCode')[0]) {
         try {
@@ -2461,8 +2473,8 @@ var mainGC = function() {
             link.setAttribute("class", "lnk");
             link.setAttribute("target", "_blank");
             link.setAttribute("title", "Show area on Google Maps");
-            var matches = ref_link.href.match(/\?lat=(-?[0-9.]*)&lng=(-?[0-9.]*)/);
-            var latlng = matches[1] + "," + matches[2];
+            var coords = toDec($('#uxLatLon')[0].innerHTML);
+            var latlng = coords[0] + "," + coords[1];
             // &ll sorgt für Zentrierung der Seite beim Marker auch wenn linke Sidebar aufklappt. Zoom 18 setzen, weil GC Map eigentlich nicht mehr kann.
             link.setAttribute("href", "https://maps.google.de/maps?q=" + latlng + "&ll=" + latlng + "&z=18");
             var img = document.createElement("img");
@@ -3079,7 +3091,7 @@ var mainGC = function() {
                     appendCssStyle(css);
 
                     // Open Trackable Inventory
-                    if(settings_auto_open_tb_inventory_list){
+                    if(settings_auto_open_tb_inventory_list && $('#trackablesPanel .inventory-panel').css('display') == 'none'){
                         $("#trackablesPanel button.btn-handle").trigger( "click" );
                     }
                     clearInterval(checkExistTBHeader);
@@ -3208,9 +3220,20 @@ var mainGC = function() {
                 }
             }
             // Signature.
+
+            var logtext = document.getElementById('ctl00_ContentBody_LogBookPanel1_uxLogInfo').value;
+            var signature = getValue("settings_log_signature", "");
+
             if (document.location.href.match(/\.com\/seek\/log\.aspx\?PLogGuid\=/)) {
-                if (settings_log_signature_on_fieldnotes) document.getElementById('ctl00_ContentBody_LogBookPanel1_uxLogInfo').innerHTML += getValue("settings_log_signature", "");
-            } else document.getElementById('ctl00_ContentBody_LogBookPanel1_uxLogInfo').innerHTML += getValue("settings_log_signature", "");
+                
+                if (settings_log_signature_on_fieldnotes && !logtext.includes(signature)){
+                    document.getElementById('ctl00_ContentBody_LogBookPanel1_uxLogInfo').innerHTML += signature;
+                }
+            } else{
+                if(!logtext.includes(signature)){
+                    document.getElementById('ctl00_ContentBody_LogBookPanel1_uxLogInfo').innerHTML += signature;
+                }
+            }
             replacePlaceholder();
         } catch(e) {gclh_error("Default Log-Type and Signature Old Log Page(CACHE)",e);}
     }
@@ -4077,54 +4100,6 @@ var mainGC = function() {
         } catch(e) {gclh_error("Name for PQ from bookmark",e);}
     }
 
-// Improve list of bookmark lists.
-    if (document.location.href.match(/\.com\/(bookmarks\/default|my\/lists)\.aspx/) && !document.location.href.match(/&WptTypeID=/) && $('table.Table')[0]) {
-        try {
-            var css = "";
-            // Compact layout.
-            if (settings_compact_layout_list_of_bm_lists) {
-                // Header:
-                css += ".ListManagementFavoritesWidget, .ListsManagemntWatchlistWidget {margin: 0 0 1.5em; padding: 0.5em;}";
-                css += ".BreadcrumbWidget p {margin-top: 0;} .span-20.last p:nth-child(1) {margin-bottom: 0}";
-                $('#divContentMain div h2').first().remove();
-                $('#divContentMain p.NoBottomSpacing').first().remove();
-                $('#divContentMain div h3').first().closest('div').remove();
-                $('#ctl00_ContentBody_hlCreateNewBookmarkList').closest('p').prop("style", "margin: 0 0 0.5em");
-                // Table:
-                css += "table.Table tr {line-height: 16px;} table.Table th, table.Table td {border: 1px solid #fff;}";
-                css += "table.Table td, table.Table td a {vertical-align: top !important;} table.Table td img {vertical-align: top !important; padding-right: 8px;}";
-                $('table.Table thead tr')[0].children[1].innerHTML = "Status";
-                $('table.Table thead tr')[0].children[5].innerHTML = "PQ";
-                $('table.Table thead tr')[0].children[6].innerHTML = "KML";
-                var span = document.createElement("span");
-                span.innerHTML += '<input id="gclh_hideTextBm" title="Show/hide Text in column Description" value="Hide Text" class="gclh_bt gclh_desc" type="button">';
-                $('table.Table thead tr th:nth-child(4)')[0].append(span);
-                css += ".gclh_hideBm {display: none;}";
-                css += ".gclh_bt {margin-left: 4px;} .working {opacity: 0.3; cursor: default;}";
-                $('#gclh_hideTextBm')[0].addEventListener("click", hideTextBm, false);
-                var lines = $('table.Table tbody tr');
-                for (var i = 0; i < lines.length; i++) {
-                    while (lines[i].children[2].childNodes[2]) {lines[i].children[2].childNodes[2].remove();}
-                    lines[i].children[1].style.whiteSpace = "nowrap";
-                    lines[i].children[3].innerHTML = '<span>' + lines[i].children[3].innerHTML + '</span>';
-                    lines[i].children[4].style.whiteSpace = "nowrap";
-                    lines[i].children[4].children[0].innerHTML = '<img src="/images/icons/16/edit.png" alt="Edit">';
-                    lines[i].children[4].children[1].innerHTML = '<img src="/images/icons/16/watch.png" alt="View">';
-                    lines[i].children[4].children[2].innerHTML = '<img src="/images/icons/16/delete.png" alt="Delete">';
-                    lines[i].children[4].childNodes[4].remove();
-                    lines[i].children[4].childNodes[2].remove();
-                    lines[i].children[5].children[0].innerHTML = '<img src="/images/icons/16/bookmark_pq.png" alt="Create PQ">';
-                    lines[i].children[6].children[0].innerHTML = '<img src="/images/icons/16/download.png" alt="Download">';
-                }
-                // Footer:
-                $('#divContentMain div ul').first().remove();
-            }
-            // Number of BMLs.
-            if ($('.span-10 h3')[0]) $('.span-10 h3')[0].innerHTML += "&nbsp;<span title='Number of Bookmark Lists of the maximum allowed 100'>("+$('table.Table tbody tr').length+"/100)</span>";
-            appendCssStyle(css);
-        } catch(e) {gclh_error("Improve list of bookmark lists",e);}
-    }
-
 // Improve bookmark lists.
     if (document.location.href.match(/\.com\/bookmarks\/(view\.aspx\?guid=|bulk\.aspx\?listid=|view\.aspx\?code=)/) && document.getElementById('ctl00_ContentBody_ListInfo_cboItemsPerPage')) {
         try {
@@ -4169,7 +4144,7 @@ var mainGC = function() {
                     if (lines[i+1].children[1].innerHTML == "") lines[i+1].style.display = "table-column";
                 }
                 // Footer:
-                $('#ctl00_ContentBody_ListInfo_btnDeleteBookmarkList').closest('p').append($('#ctl00_ContentBody_btnCreatePocketQuery').remove().get().reverse());
+                if ($('#ctl00_ContentBody_ListInfo_btnDeleteBookmarkList')[0]) $('#ctl00_ContentBody_ListInfo_btnDeleteBookmarkList').closest('p').append($('#ctl00_ContentBody_btnCreatePocketQuery').remove().get().reverse());
             }
             // Build link "Map List" right above.
             if ($('#ctl00_ContentBody_btnAddBookmark')[0] && $('#ctl00_ContentBody_ListInfo_cboItemsPerPage')[0]) {
@@ -5193,7 +5168,7 @@ var mainGC = function() {
                         if (getValue("settings_load_logs_with_gclh") == false) return;
                         for (var i = 0; i < log_infos_long.length; i++) {
                             var user = log_infos_long[i]["user"];
-                            if (in_array(user, global_vips) || user == owner_name) {
+                            if (in_array(user, global_vips) || user == owner_name || (settings_show_reviewer_as_vip && log_infos_long[i]["membership_level"] == "Reviewer")) {
                                 if (!log_infos_long[i]["date"]) continue;
                                 if (log_infos_long[i]["icon"].match(/\/(2|10)\.png$/)) users_found.push(user);  // Für not found liste.
                                 var span = document.createElement("span");
@@ -5235,7 +5210,7 @@ var mainGC = function() {
                         }
                     }
 
-                    function gclh_build_list(user) {
+                    function gclh_build_list(user, is_reviewer = false) {
                         if (getValue("settings_load_logs_with_gclh") == false) return;
                         if (!show_owner && owner_name && owner_name == user) return true;
                         if (in_array(user, all_users) || (owner_name == user)) {
@@ -5246,7 +5221,11 @@ var mainGC = function() {
                             if (show_owner && owner_name && owner_name == user) {
                                 span.appendChild(document.createTextNode("Owner: "));
                                 show_owner = false;
-                            } else if (user == myself) span.appendChild(document.createTextNode("Me: "));
+                            } else if (user == myself){
+                                span.appendChild(document.createTextNode("Me: "));  
+                            } else if (is_reviewer){
+                                span.appendChild(document.createTextNode("Reviewer: "));
+                            }
                             span.appendChild(profile);
                             // Build VIP Icon. Wenn es Owner ist und Owner in VUP array, dann VUP Icon.
                             if (owner_name && owner_name == user && in_array(user, global_vups)) link = gclh_build_vipvup(user, global_vups, "vup");
@@ -5285,12 +5264,30 @@ var mainGC = function() {
                         }
                     }
 
+
+                    var reviewer = new Array();
                     owner_name = html_to_str(owner_name);
                     if (settings_show_long_vip) gclh_build_long_list();
                     else {
                         if (!log_infos[owner_name]) log_infos[owner_name] = new Array();
                         gclh_build_list(owner_name);
-                        for (var i = 0; i < global_vips.length; i++) {gclh_build_list(global_vips[i]);}
+                        // Add Reviewer data
+                        if(settings_show_reviewer_as_vip){
+                            for (var i = 0; i < log_infos_long.length; i++) {
+                                if(log_infos_long[i]["membership_level"] == "Reviewer"){
+                                    // Test if we already added him
+                                    if(in_array(log_infos_long[i]["user"], reviewer)) continue;
+                                    gclh_build_list(log_infos_long[i]["user"], true);
+                                    reviewer.push(log_infos_long[i]["user"]);
+                                }
+                            }
+                        }
+
+                        for (var i = 0; i < global_vips.length; i++) {
+                            // do not add Reviewer again
+                            if(in_array(global_vips[i], reviewer)) continue;
+                            gclh_build_list(global_vips[i]);
+                        }
                     }
 
                     // "Not found"-Liste erstellen.
@@ -5621,6 +5618,9 @@ var mainGC = function() {
             global_MailTemplate = urlencode(buildSendTemplate().replace(/#Receiver#/ig, "__Receiver__"));
             global_MailTemplate = global_MailTemplate.replace(/__Receiver__/ig, "${UserName}");
 
+            var isUpvoteActive = false;
+            if($('#cache_logs_container #sortOrder').length) isUpvoteActive = true
+
             var vupUserString = 'if UserName == "#" ';
             var vupHideAvatarString  = 'if (UserName != "#" ';
             var vupHideCompleteLog = vupUserString;
@@ -5643,7 +5643,7 @@ var mainGC = function() {
                 '{{' + vupHideCompleteLog  + '}}' +
                 '<tr class="log-row display_none" data-encoded="${IsEncoded}" style="display:none" >' +
                 '{{else}}' +
-                '<tr class="log-row" data-encoded="${IsEncoded}" >' +
+                '<tr class="log-row l-${LogID}" data-encoded="${IsEncoded}" >' +
                 '{{/if}}' +
                 '  <td>' +
                 '    <div class="FloatLeft LogDisplayLeft" >' +
@@ -5740,7 +5740,60 @@ var mainGC = function() {
                 '        {{if (userInfo.ID==AccountID)}}' +
                 '        <small><a title="Upload Image" href="/seek/upload.aspx?LID=${LogID}" target="_blank">Upload Image</a></small>' +
                 '        {{/if}}' +
-                '      </div>' +
+                '      </div>';
+            if(isUpvoteActive) new_tmpl += 
+                '     {{if LogType === "Found it" || LogType === "Didn\'t find it" || LogType === "Webcam photo taken" || LogType === "Attended" || LogType === "Announcement" }}' +
+                '         <div class="upvotes">' +
+                '             <button class="great-story-btn{{if (typeof greatStoryupvotedByUser != "undefined") && greatStoryupvotedByUser}} upvoted{{/if}}"' +
+                '                     type="button" ' +
+                '                     data-log-id="${LogID}" ' +
+                '                     data-upvoted="false" ' +
+                '                     data-upvote-type="1" ' +
+                '                     {{if userInfo.ID == AccountID}}' +
+                '                         title="You cannot vote for your own logs."' +
+                '                     {{else}}' +
+                '                         title="Was this a great story?"' +
+                '                     {{/if}}' +
+                '                     {{if userInfo.ID == AccountID}}disabled{{/if}}>                ' +
+                '                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">' +
+                '                   <g>' +
+                '                     <g stroke-width="1.125" transform="translate(4 3)">' +
+                '                       <path d="M2,0 L16,0 L16,18 L2,18 L2,18 C0.8954305,18 1.3527075e-16,17.1045695 0,16 L0,2 L0,2 C-1.3527075e-16,0.8954305 0.8954305,2.02906125e-16 2,0 Z"/>' +
+                '                       <path d="M4.5,0.5 L4.5,17.5" stroke-linecap="square"/>' +
+                '                       <polygon points="9 0 13 0 13 8 11 6 9 8"/>' +
+                '                     </g>' +
+                '                   </g>' +
+                '                 </svg>' +
+                '                 <span>Great story{{if (typeof greatStory != "undefined") && greatStory > 0}} (${greatStory}){{/if}}</span>' +
+                '             </button>' +
+                '             <span class="loading-container hide loading-${LogID}">' +
+                '                 <img src="/app/ui-images/branding/loading-spinner.svg"></img>' +
+                '             </span>' +
+                '             <button class="helpful-btn{{if (typeof helpfulupvotedByUser != "undefined") && helpfulupvotedByUser}} upvoted{{/if}}" ' +
+                '                     type="button" data-log-id="${LogID}"' +
+                '                     data-upvoted="false" ' +
+                '                     data-upvote-type="2" ' +
+                '                     {{if userInfo.ID == AccountID}}' +
+                '                         title="You cannot vote for your own logs."' +
+                '                     {{else}}' +
+                '                         title="Was this helpful?"' +
+                '                     {{/if}}' +
+                '                     {{if userInfo.ID == AccountID}}disabled{{/if}}>' +
+                '                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 21.55 21.29">' +
+                '                   <g>' +
+                '                     <g>' +
+                '                       <path d="M21.3 13.38a1.08 1.08 0 0 1-.18.6 1 1 0 0 1-1.41.34l-1.29-.89-2.33-1.55-.15.21 3.63 2.43a1.12 1.12 0 0 1 .29 1.48 1.1 1.1 0 0 1-.7.47 1 1 0 0 1-.78-.17l-3.69-2.47-.14.19 3.81 2.59a1.1 1.1 0 0 1 .29 1.51 1 1 0 0 1-1.42.32L13.3 15.8l-.14.2L17 18.58a.48.48 0 0 1 .11.09 1.08 1.08 0 0 1 .17 1.42 1 1 0 0 1-.67.46 1 1 0 0 1-.8-.16l-1.43-1a1.84 1.84 0 0 0-.8-1.39 1.77 1.77 0 0 0-1-.31 1.84 1.84 0 0 0-.33 0 1.67 1.67 0 0 0-.3.08 1.83 1.83 0 0 0-.74-1.88 1.77 1.77 0 0 0-1-.3 1.5 1.5 0 0 0-.35 0 1.58 1.58 0 0 0-.31.09 1.77 1.77 0 0 0-1.73-2.19h-.33a1.7 1.7 0 0 0-.45.15 1.7 1.7 0 0 0-.66-1.83 1.58 1.58 0 0 0-.91-.28 1.35 1.35 0 0 0-.33 0 1.67 1.67 0 0 0-1.06.71l-.3.46a5.17 5.17 0 0 1-.43-2.13L0 8.31 4.92.9l3.32 2.31A2.67 2.67 0 0 1 11.52 3a4.19 4.19 0 0 0-2.75 1.16C7.79 5.33 6.17 7.79 6.05 8H6v.06a2 2 0 0 0 .3 1.68 1.07 1.07 0 0 0 .42.33 1.62 1.62 0 0 0 .72.17 1.54 1.54 0 0 0 1.09-.45l1.31-2a2.44 2.44 0 0 0 1.49.63 2 2 0 0 0 .42 0 2.12 2.12 0 0 0 .67-.3 2.61 2.61 0 0 0 .78-.7l6.58 4.41 1 .65a1.09 1.09 0 0 1 .45.69.82.82 0 0 1 .07.21z"/>' +
+                '                       <path d="M9.23 15.31a1 1 0 0 1 0 .17.8.8 0 0 1 0 .15 1.33 1.33 0 0 1 0 .19l-.15.18a1.09 1.09 0 0 1-.08.15l-.16.24L8 17.55a1.43 1.43 0 0 1-.2.23 1.43 1.43 0 0 1-.7.36 1.23 1.23 0 0 1-.27 0 1.42 1.42 0 0 1-.8-.24 1.49 1.49 0 0 1-.5-1.8 1.74 1.74 0 0 1 .1-.19l1-1.44a1.43 1.43 0 0 1 .89-.57 1.23 1.23 0 0 1 .27 0 1.44 1.44 0 0 1 .8.24 1.55 1.55 0 0 1 .27.24 1.32 1.32 0 0 1 .19.29 2.19 2.19 0 0 1 .12.33 1.39 1.39 0 0 1 .06.31zM11.58 17.75a2.33 2.33 0 0 1-.14.33.34.34 0 0 1-.06.12l-.75 1.14a1 1 0 0 1-.13.16 1.38 1.38 0 0 1-.79.45 1.14 1.14 0 0 1-.26 0 1.38 1.38 0 0 1-.8-.25 1.47 1.47 0 0 1-.53-1.7 1.22 1.22 0 0 1 .14-.28L9 16.56a1.48 1.48 0 0 1 .33-.33 1.33 1.33 0 0 1 .6-.23 1.23 1.23 0 0 1 .27 0 1.41 1.41 0 0 1 .79.24 1.48 1.48 0 0 1 .59 1.51zM13.76 20.3l-.37.55a1.29 1.29 0 0 1-1.13.44 5 5 0 0 1-.88-.09 1.48 1.48 0 0 1-.55-1.56.27.27 0 0 0 .09-.1l.75-1.14.05-.08.08-.07a1.26 1.26 0 0 1 .26-.13 1.05 1.05 0 0 1 .24-.06 1.06 1.06 0 0 1 .25 0A1.41 1.41 0 0 1 14 19.15a1.48 1.48 0 0 1-.24 1.15zM11.8 18.24l-.08.07z"/>' +
+                '                       <path d="M11.72 18.3l.08-.07z" />' +
+                '                       <path d="M20.05 9.92a2.33 2.33 0 0 1-.19 1.44l-6.68-4.48-.06.12a2.34 2.34 0 0 1-.92.85 2 2 0 0 1-.48.19 1.24 1.24 0 0 1-.33 0A2.15 2.15 0 0 1 10 7.36l-.11-.12L8.3 9.57a1.22 1.22 0 0 1-.85.35 1.17 1.17 0 0 1-.57-.14.83.83 0 0 1-.31-.24 1.17 1.17 0 0 1-.23-.44 2.21 2.21 0 0 1 0-.93C6.5 7.93 8.09 5.52 9 4.39a4 4 0 0 1 2.71-1h.54L14.53 0l7 4.93-2.17 3.33v.07a5.38 5.38 0 0 1 .69 1.59zM6.52 14l-.13.2v.06l-1 1.45a1.36 1.36 0 0 1-.84.55 1 1 0 0 1-.24 0 1.26 1.26 0 0 1-.73-.23 1.37 1.37 0 0 1-.35-1.84l1.14-1.71a1.33 1.33 0 0 1 .84-.48 1.06 1.06 0 0 1 .25 0 1.22 1.22 0 0 1 .71.22A1.37 1.37 0 0 1 6.52 14z"/>' +
+                '                     </g>' +
+                '                   </g>' +
+                '                 </svg>' +
+                '                 <span>Helpful{{if (typeof helpful != "undefined") && helpful > 0}} (${helpful}){{/if}}</span>' +
+                '             </button>' +
+                '         </div>' +
+                '     {{/if}}';
+            new_tmpl +=
                 '     </div>' +
                 '   </td>' +
                 '</tr>';
@@ -5755,6 +5808,9 @@ var mainGC = function() {
             css += ".TableLogContent {padding-left: 0.5em; border-left: 1px solid #d7d7d7;}";
             // Länge der Usernamen in den Logs beschränken, damit sie nicht umgebrochen werden.
             css += ".logOwnerProfileName {max-width: 135px; display: inline-block; overflow: hidden; vertical-align: bottom; white-space: nowrap; text-overflow: ellipsis;}";
+
+            if(isUpvoteActive) css += ".upvotes{display: block;}";
+
             appendCssStyle(css);
         } catch(e) {gclh_error("Define log-template",e);}
     }
@@ -5790,26 +5846,27 @@ var mainGC = function() {
             }
 
             // Reinit initalLogs.
-            if ((!document.getElementById("cache_logs_table") && !document.getElementById("cache_logs_table2")) ||
-                (!document.getElementById("cache_logs_table").getElementsByTagName("tbody") && !document.getElementById("cache_logs_table2").getElementsByTagName("tbody")) ||
-                (document.getElementById("cache_logs_table").getElementsByTagName("tbody").length == 0 && document.getElementById("cache_logs_table2").getElementsByTagName("tbody").length == 0)) break overwrite_log_template;
-            var tbody = (document.getElementById("cache_logs_table2") || document.getElementById("cache_logs_table")).getElementsByTagName("tbody");
-            if (tbody.length > 0) {
-                tbody = tbody[0];
-                if (tbody.children.length > 0 && isTM === false) {
-                    var initialLogData = chromeUserData.initalLogs || unsafeWindow.initalLogs || initalLogs;
-                    var inclAvatars = chromeUserData.includeAvatars || unsafeWindow.includeAvatars || includeAvatars;
-                    var newInitalLogs = $("#tmpl_CacheLogRow").tmpl(initialLogData.data, {
-                        includeAvatars: inclAvatars
-                    });
-                    for (var j = 0; j < newInitalLogs.length && j < tbody.children.length; j++) {
-                        unsafeWindow.$(tbody.children[j]).replaceWith(newInitalLogs[j]);
-                    }
-                    unsafeWindow.$('a.tb_images').fancybox({'type': 'image', 'titlePosition': 'inside'});
-                    gclh_add_vip_icon();
-                    setLinesColorInCacheListing();
+            // Timeout is necessary because otherwise the fancybox for images is not working (WTF??)
+            setTimeout(function(){
+                // Remove all logs
+                unsafeWindow.$("#cache_logs_table tbody").children().remove();
+                
+                var initialLogs = unsafeWindow.initialLogs;
+                var inclAvatars = chromeUserData.includeAvatars || unsafeWindow.includeAvatars || includeAvatars;
+
+                for (var i = 0; i < initialLogs.data.length; i++) {
+                    var newBody = unsafeWindow.$(document.createElement("TBODY"));
+                    unsafeWindow.$("#tmpl_CacheLogRow_gclh").tmpl(initialLogs.data[i]).appendTo(newBody);
+                    unsafeWindow.$(document.getElementById("cache_logs_table")).append(newBody.children());
                 }
-            }
+            
+                unsafeWindow.$('a.tb_images').fancybox({'type': 'image', 'titlePosition': 'inside'});
+                gclh_add_vip_icon();
+                setLinesColorInCacheListing();
+            }, 0);
+            
+            
+
             function loadListener(e) {
                 gclh_add_vip_icon();
                 setLinesColorInCacheListing();
@@ -5882,8 +5939,10 @@ var mainGC = function() {
                         if (!isBusy && !document.getElementById("gclh_all_logs_marker")) {
                             isBusy = true;
                             $("#pnlLazyLoad").show();
+                            var log_ids = [];
                             for (var i = 0; i < 10; i++) {
                                 if (global_logs[global_num]) {
+                                    log_ids.push(global_logs[global_num].LogID);
                                     var newBody = unsafeWindow.$(document.createElement("TBODY"));
                                     unsafeWindow.$("#tmpl_CacheLogRow_gclh").tmpl(global_logs[global_num]).appendTo(newBody);
                                     unsafeWindow.$(document.getElementById("cache_logs_table2") || document.getElementById("cache_logs_table")).append(newBody.children());
@@ -5893,6 +5952,10 @@ var mainGC = function() {
                             unsafeWindow.$('a.tb_images').fancybox({'type': 'image', 'titlePosition': 'inside'});
                             gclh_add_vip_icon();
                             setLinesColorInCacheListing();
+                            if(isUpvoteActive){
+                                unsafeWindow.appendUpvotesToLogs(log_ids);
+                                updateUpvoteEvents(logs);
+                            }
                             if (!settings_hide_top_button) $("#topScroll").fadeIn();
                             $("#pnlLazyLoad").hide();
                             isBusy = false;
@@ -5929,6 +5992,10 @@ var mainGC = function() {
                 if (settings_show_all_logs_but) addButtonOverLogs(gclh_load_all_logs, "gclh_load_all_logs", false, "Show all logs", "");
                 if (settings_show_bigger_avatars_but && !settings_hide_avatar && !isMemberInPmoCache() && settings_show_thumbnails) showBiggerAvatarsLink();
                 if (settings_show_log_counter_but) showLogCounterLink();
+                if(isUpvoteActive){
+                    $('#new_sort_element_upvote').prop( "disabled", false );
+                    $('#new_sort_element_upvote').removeClass("isDisabled");
+                } 
             }
 
             // Filter logs.
@@ -6065,6 +6132,88 @@ var mainGC = function() {
                     document.getElementById("gclh_vip_list_nofound").appendChild(span_loading);
                 }
 
+                if(isUpvoteActive){
+                    // remove the sorting select
+
+                    appendCssStyle("#new_sort_element_upvote.isDisabled{opacity: 0.5;}")
+                    appendCssStyle("#gclh_show_log_counter.isDisabled{opacity: 0.5;}")
+
+                    var new_sort_element = document.createElement('select');
+                    new_sort_element.setAttribute('id', 'new_sort_element_upvote');
+                    new_sort_element.classList.add("isDisabled");;
+                    new_sort_element.disabled = true;
+                    new_sort_element.onchange = function() {
+                        
+                        var sorting_key = this.value;
+
+                        // Deactivate gclh_show_log_counter_button when sorting is not "newest"
+                        var gclh_show_log_counter_button = $("#gclh_show_log_counter input")[0];
+                        if(gclh_show_log_counter_button){
+                            if(sorting_key == 'newest'){
+                                $("#gclh_show_log_counter").removeClass("isDisabled");
+                                gclh_show_log_counter_button.disabled = false;
+                            }else{
+                                $("#gclh_show_log_counter").addClass("isDisabled");
+                                gclh_show_log_counter_button.disabled = true;
+                            }
+                        }
+
+                        $(this).after(' <img id="sort_logs_working" src="' + urlImages + 'ajax-loader.gif" />');
+
+                        //Sort all the logs
+                        logs.sort(function(a, b) {
+                            if((sorting_key == 'newest') || (b[sorting_key] == a[sorting_key])){
+                                return a['newest'] - b['newest'];
+                            }else{
+                                return b[sorting_key] - a[sorting_key];
+                            }
+                        });
+
+                        setTimeout(function() {
+                            if (logs) {
+                                // IDs der Cache Logs Tables.
+
+                                var count = $('tbody',$('#cache_logs_table2, #cache_logs_table')).first().children().length;
+
+                                $('tbody',$('#cache_logs_table2, #cache_logs_table')).first().children().remove();
+                                for (var i = 0; i < count; i++) {
+                                    if (logs[i]) {
+                                        var newBody = unsafeWindow.$(document.createElement("TBODY"));
+                                        unsafeWindow.$("#tmpl_CacheLogRow_gclh").tmpl(logs[i]).appendTo(newBody);
+                                        unsafeWindow.$(document.getElementById("cache_logs_table2") || document.getElementById("cache_logs_table")).append(newBody.children());
+                                    }
+                                }
+                                unsafeWindow.$('a.tb_images').fancybox({'type': 'image', 'titlePosition': 'inside'});
+                                gclh_add_vip_icon();
+                                setLinesColorInCacheListing();
+                                if (document.getElementById("gclh_show_log_counter")) document.getElementById("gclh_show_log_counter").style.visibility = "";
+                                
+                                updateUpvoteEvents(logs);
+                            }
+                            $('#sort_logs_working').remove();
+                        }, 100);
+
+                   }
+                    
+                    var newest = document.createElement('option');
+                    newest.innerHTML = 'Newest';
+                    newest.value = 'newest';
+                    new_sort_element.appendChild(newest);
+                    
+                    var beststory = document.createElement('option');
+                    beststory.innerHTML = 'Best story';
+                    beststory.value = 'greatStory';
+                    new_sort_element.appendChild(beststory);
+                    
+                    var mosthelpful = document.createElement('option');
+                    mosthelpful.innerHTML = 'Most helpful';
+                    mosthelpful.value = 'helpful';
+                    new_sort_element.appendChild(mosthelpful);
+
+                    $("#cache_logs_container #sortOrder").before(new_sort_element);
+                    $('#cache_logs_container #sortOrder').remove();
+                }
+
                 function gclh_load_helper(count) {
                     var url = http + "://www.geocaching.com/seek/geocache.logbook?tkn=" + userToken + "&idx=" + curIdx + "&num=100&decrypt=false";
                     GM_xmlhttpRequest({
@@ -6086,6 +6235,36 @@ var mainGC = function() {
                     });
                 }
 
+                function getUpvoteData(logIds,starting_index) {
+                    $.ajax({
+                        type: "GET",
+                        url: "/account/oauth/token",
+                        success: function (result) {
+                            $.ajax({
+                                type: "GET",
+                                url: "/api/proxy/web/v1/Geocaches/logs/upvote",
+                                dataType: 'json',
+                                headers: {
+                                    "Authorization": "Bearer " + result.access_token
+                                },
+                                data: {
+                                    geocacheLogIds: logIds.join(',')
+                                },
+                                success: function (data) {
+                                    for (var i = 0; i < logIds.length; i++) {
+                                        // Append Great Story and Helpful to our loaded logs
+                                        logs[i+starting_index].greatStory = data[logIds[i]].greatStory.count;
+                                        logs[i+starting_index].greatStoryupvotedByUser = data[logIds[i]].greatStory.upvotedByUser;
+                                        logs[i+starting_index].helpful = data[logIds[i]].helpful.count;
+                                        logs[i+starting_index].helpfulupvotedByUser = data[logIds[i]].helpful.upvotedByUser;
+                                        logs[i+starting_index].newest = i+starting_index;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+
                 function gclh_load_dataHelper() {
                     logs = new Array();
                     // Disable scroll Function on Page.
@@ -6103,10 +6282,13 @@ var mainGC = function() {
                     unsafeWindow.$('#cache_logs_table2').append(tableContent);
                     $(tableContent).find('.log-row').remove();
                     for (var z = 1; z <= numPages; z++) {
+                        var all_ids = new Array();
+                        // console.log(data[z].data);
                         var json = data[z];
                         logs = logs.concat(json.data);
                         for (var i = 0; i < json.data.length; i++) {
                             var user = json.data[i].UserName;
+                            all_ids.push(json.data[i].LogID);
                             if (settings_show_vip_list) {
                                 all_users.push(user);
                                 if (!log_infos[user]) log_infos[user] = new Array();
@@ -6115,14 +6297,28 @@ var mainGC = function() {
                                 log_infos[user][index]["id"] = json.data[i].LogID;
                                 log_infos[user][index]["date"] = json.data[i].Visited;
                                 log_infos[user][index]["log"] = json.data[i].LogText;
+                                log_infos[user][index]["membership_level"] = json.data[i].creator.GroupTitle;
                                 log_infos_long[index] = new Object();
                                 log_infos_long[index]["user"] = user;
                                 log_infos_long[index]["icon"] = "/images/logtypes/" + json.data[i].LogTypeImage;
                                 log_infos_long[index]["id"] = json.data[i].LogID;
                                 log_infos_long[index]["date"] = json.data[i].Visited;
                                 log_infos_long[index]["log"] = json.data[i].LogText;
+                                log_infos_long[index]["membership_level"] = json.data[i].creator.GroupTitle;
+
+                                if(json.data[i].LogType == "Publish Listing"){
+                                    log_infos[user][index]["membership_level"] = "Reviewer";
+                                    log_infos_long[index]["membership_level"] = "Reviewer";
+                                }
+
                                 index++;
                             }
+                        }
+                        // Add Great story / helpful data to logs
+                        // give starting index to the function, so it knows 
+                        // what index has to be updated
+                        if(isUpvoteActive){
+                            getUpvoteData(all_ids,((z-1)*100));
                         }
                     }
 
@@ -6131,14 +6327,22 @@ var mainGC = function() {
                     gclh_filter(logs);
                     gclh_search(logs);
 
+                    var log_ids = [];
+
                     for (var i = 0; i < num; i++) {
                         if (logs[i]) {
+                            log_ids.push(logs[i].LogID);
                             var newBody = unsafeWindow.$(document.createElement("TBODY"));
                             unsafeWindow.$("#tmpl_CacheLogRow_gclh").tmpl(logs[i]).appendTo(newBody);
                             unsafeWindow.$(document.getElementById("cache_logs_table2") || document.getElementById("cache_logs_table")).append(newBody.children());
                         }
                     }
                     unsafeWindow.$('a.tb_images').fancybox({'type': 'image', 'titlePosition': 'inside'});
+                    if(isUpvoteActive){
+                        unsafeWindow.appendUpvotesToLogs(log_ids);
+                        updateUpvoteEvents(logs);
+                    }
+
                     gclh_dynamic_load(logs, num);
                     if (settings_show_vip_list) {
                         gclh_build_vip_list();
@@ -6148,6 +6352,83 @@ var mainGC = function() {
                 }
                 gclh_load_helper(1);
             }
+
+            function updateUpvoteEvents(all_logs){
+                $('.great-story-btn').each(function(){
+                    $(this).unbind('click');
+                    $(this).click(function(){
+
+                        // there is a bug (or a feature) in jQuery(?):
+                        // if you have a data attribute (like data-upvoted="false") and you also have set objekt.data(upvoted,"true")
+                        // JQuery will override your data value with the data value from the dom. So we check here, if the button has 
+                        // a class "upvoted", and if yes, we reset the object.data("upvoted") to true. Otherwise, when the button is 
+                        // upvoted, the first click would not result in "not upvoting" the log, but the secound.
+                        if($(this).hasClass('upvoted')) $(this).data('upvoted', true);
+
+                        //also we have to update our internal counter of votes for the log to display it correctly on sorting
+
+                        var log_index = false;
+                        for (var i = 0; i < all_logs.length; i++) {
+                            if(all_logs[i].LogID == $(this).data('log-id')){
+                                log_index = i;
+                            }
+                        }
+
+                        if(log_index === false){
+                            return upvoteLog($(this));
+                            throw Error('Could not find Log coresponding to Upvote clicked.');
+                        }
+
+                        if($(this).hasClass('upvoted')){
+                            all_logs[log_index].greatStory -= 1;
+                            all_logs[log_index].greatStoryupvotedByUser = false;
+                        }else{
+                            all_logs[log_index].greatStory += 1;
+                            all_logs[log_index].greatStoryupvotedByUser = true;
+                        }
+
+                        return upvoteLog($(this));
+                    });
+                });
+
+                $('.helpful-btn').each(function(){
+                    $(this).unbind('click');
+                    $(this).click(function(){
+                        
+                        // there is a bug (or a feature) in jQuery(?):
+                        // if you have a data attribute (like data-upvoted="false") and you also have set objekt.data(upvoted,"true")
+                        // JQuery will override your data value with the data value from the dom. So we check here, if the button has 
+                        // a class "upvoted", and if yes, we reset the object.data("upvoted") to true. Otherwise, when the button is 
+                        // upvoted, the first click would not result in "not upvoting" the log, but the secound.
+                        if($(this).hasClass('upvoted')) $(this).data('upvoted', true);
+
+                        //also we have to update our internal counter of votes for the log to display it correctly on sorting
+
+                        var log_index = false;
+                        for (var i = 0; i < all_logs.length; i++) {
+                            if(all_logs[i].LogID == $(this).data('log-id')){
+                                log_index = i;
+                            }
+                        }
+
+                        if(log_index === false){
+                            return upvoteLog($(this));
+                            throw Error('Could not find Log coresponding to Upvote clicked.');
+                        }
+
+                        if($(this).hasClass('upvoted')){
+                            all_logs[log_index].helpful -= 1;
+                            all_logs[log_index].helpfulupvotedByUser = false;
+                        }else{
+                            all_logs[log_index].helpful += 1;
+                            all_logs[log_index].helpfulupvotedByUser = true;
+                        }
+                        
+                        return upvoteLog($(this));
+                    });
+                });
+            }
+
             if (settings_show_all_logs) {
                 var logsCount = parseInt(settings_show_all_logs_count);
                 if (logsCount == 0) logsCount = 5000;
@@ -6155,8 +6436,11 @@ var mainGC = function() {
                 else if (logsCount%2 != 0) logsCount += 1;
                 gclh_load_logs(logsCount);
             } else gclh_load_logs(30);
+
         } catch(e) {gclh_error("Replace Log-Loading function",e);}
+
     }
+
     // Zeilen in Cache Listings in Zebra und für User, Owner, Reviewer und VIP einfärben.
     function setLinesColorInCacheListing() {
         if (is_page("cache_listing")) {
@@ -6413,7 +6697,7 @@ var mainGC = function() {
                         });
                     } catch(e) {gclh_error("function getIgnoreList()",e);}
                 }
-                var sidebarLists = $($('ul.link-block a[href*="/my/watchlist.aspx"]'));
+                var sidebarLists = $($('ul.link-block:not(".gclh") a[href*="/my/watchlist.aspx"]'));
                 var html = '<li><a id="gclh_goto_ignorelist" href="#gclhGotoIgnorelist">Ignore List</a></li>';
                 sidebarLists.parent().after(html);
                 $("#gclh_goto_ignorelist").click( function(e) {
@@ -8984,7 +9268,7 @@ var mainGC = function() {
 //--> $$002
         var code = '<img src="https://c.andyhoppe.com/1547879884"' + prop +
                    '<img src="https://c.andyhoppe.com/1547879947"' + prop +
-                   '<img src="https://www.worldflagcounter.com/fH1"' + prop +
+                   '<img src="https://www.worldflagcounter.com/f1X"' + prop +
                    '<img src="https://s11.flagcounter.com/count2/tV1V/bg_FFFFFF/txt_000000/border_CCCCCC/columns_6/maxflags_60/viewers_0/labels_1/pageviews_1/flags_0/percent_0/"' + prop;
 //<-- $$002
         div.innerHTML = code;
@@ -9781,16 +10065,48 @@ var mainGC = function() {
         html += "a.gclh_info_rc:hover span {";
         html += "  width: 500px !important;";
         html += "  left: -245px !important;}";
-        html += ".gclh_rc_area {";
+        html += ".gclh_rc_area, .gclh_thanks_area {";
         html += "  z-index: 1001;";
         html += "  border: 1px solid #778555;";
         html += "  border-radius: 30px;";
         html += "  padding: 20px;";
         html += "  margin-top: 15px;}";
         html += ".gclh_rc_area_button {margin-left: 185px;}";
-        html += ".gclh_rc_form {";
+        html += ".gclh_rc_form, .gclh_thanks_form {";
         html += "  margin-bottom: 15px !important;";
         html += "  margin-left: 15px !important;}";
+        html += ".gclh_thanks_area_button {margin-left: 230px;}";
+        html += ".gclh_thanks_table {";
+        html += "  border-collapse: collapse;";
+        html += "  border: 2px solid #d8cd9d !important; }";
+        html += ".gclh_thanks_table th {";
+        html += "  border: 1px solid #778555;";
+        html += "  border-bottom-width: 2px;";
+        html += "  padding: 0px 4px;";
+        html += "  vertical-align: initial;";
+        html += "  font-weight: initial;}";
+        html += ".gclh_thanks_table th span:not(.gclh_span) {font-variant: all-petite-caps;}";
+        html += ".gclh_thanks_table th:nth-child(1) {";
+        html += "  border-right-width: 2px;";
+        html += "  max-width: 100px;}";
+        html += ".gclh_thanks_table td {";
+        html += "  border: 1px solid #778555;";
+        html += "  vertical-align: initial;";
+        html += "  text-align: center;}";
+        html += ".gclh_thanks_table td:nth-child(1) {";
+        html += "  border-right-width: 2px;";
+        html += "  max-width: 100px;";
+        html += "  padding: 0px 4px;";
+        html += "  text-align: initial;}";
+        html += ".gclh_thanks_table td:nth-child(1) a {";
+        html += "  max-width: 100px;";
+        html += "  display: inline-block;";
+        html += "  overflow: hidden;";
+        html += "  vertical-align: bottom;";
+        html += "  white-space: nowrap;";
+        html += "  text-overflow: ellipsis;}";
+        html += ".gclh_thanks_table td img {vertical-align: text-top}";
+        html += ".gclh_thanks_table tr.separator td {border-bottom-width: 2px;}";
         html += ".ll_heading {";
         html += "  margin-top: 0px;";
         html += "  margin-bottom: 0px;";
@@ -9832,8 +10148,12 @@ var mainGC = function() {
         if (settings_make_config_main_areas_hideable && !document.location.href.match(/#a#/i)) {
             var prepareHideable = "<img id='lnk_gclh_config_#name#' title='' src='' style='cursor: pointer'> ";
         } else var prepareHideable = "";
-        if ($('#settings_overlay')[0] && $('#settings_overlay')[0].style.display == "none") $('#settings_overlay')[0].style.display = "";
-        else {
+        if ($('#settings_overlay')[0] && $('#settings_overlay')[0].style.display == "none") {
+            $('#gclh_config_content_thanks').hide();
+            $('#gclh_config_content1').show();
+            $('#gclh_config_content3').show();
+            $('#settings_overlay')[0].style.display = "";
+        } else {
             create_config_css();
             var div = document.createElement("div");
             div.setAttribute("id", "settings_overlay");
@@ -9841,15 +10161,17 @@ var mainGC = function() {
             var html = "";
             html += "<h3 class='gclh_headline' title='Some little things to make life easy (on www.geocaching.com).' >" + scriptNameConfig + " <font class='gclh_small'>v" + scriptVersion + "</font></h3>";
             html += "<div class='gclh_content'>";
+
             html += "<div id='gclh_config_content1'>";
             html += "&nbsp;" + "<font style='float: right; font-size: 11px; ' >";
             html += "<a href='http://geoclub.de/forum/viewforum.php?f=117' title='Help is available on the Geoclub forum' target='_blank'>Help</a> | ";
             html += "<a href='"+urlFaq+"' title='Frequently asked questions on GitHub' target='_blank'>FAQ</a> | ";
             html += "<a href='https://github.com/2Abendsegler/GClh/issues?q=is:issue is:open sort:created-desc' title='Show/open issues on GitHub' target='_blank'>Issues</a> | ";
-            html += "<a href='"+urlChangelog+"' title='Documentation of changes and new features in GClh II on GitHub' target='_blank'>Changelog</a> | ";
-            html += "<a id='check_for_upgrade' href='#' style='cursor: pointer' title='Check for upgrade GClh II'>Check for upgrade</a> | ";
-            html += "<a href='https://github.com/2Abendsegler/GClh/tree/master' title='Development plattform and issue system of GClh II' target='_blank'>GitHub</a> | ";
-            html += "<a id='rc_link' href='#' style='cursor: pointer' title='Reset some configuration data'>Reset</a></font>";
+            html += "<a href='"+urlChangelog+"' title='Documentation of changes and new features on GitHub' target='_blank'>Changelog</a> | ";
+            html += "<a id='check_for_upgrade' href='#' style='cursor: pointer' title='Check for new version'>Upgrade</a> | ";
+            html += "<a href='https://github.com/2Abendsegler/GClh/tree/master' title='Development plattform and issue system' target='_blank'>GitHub</a> | ";
+            html += "<a id='rc_link' href='#' style='cursor: pointer' title='Reset some configuration data'>Reset</a> | ";
+            html += "<a id='thanks_link' href='#' style='cursor: pointer' title='Note of thanks'>Thanks</a></font>";
             html += "</div>";
 
             html += "<div id='gclh_config_content2'>";
@@ -9861,11 +10183,59 @@ var mainGC = function() {
             html += "<input type='radio' name='rc' id='rc_uid' class='gclh_rc'><label for='rc_uid'>Reset your own id for your trackables</label>" + show_help_rc("This option could help you with problems with your own trackables lists, which based on an special id, the uid. The uid are not deleted at GC, but only in GClh. <br><br>After reset, you have to go to your dashboard, so that GClh can save your uid again automatically. You have only to go to this page, you have nothing to do at this page, GClh save the uid automatically. <br><br>At last, choose button \"close\".");
             html += "<font class='gclh_small'> (After reset, go to <a href='/my/' target='_blank'>Dashboard</a> )</font>" + "<br><br>";
             html += "<div class='gclh_rc_area_button'>";
-            html += "<img id='rc_doing' src='' title='' alt='' style='margin-top: 4px; margin-left: -25px; position: absolute;' /><input class='gclh_rc_form' type='button' value='reset' id='rc_reset_button'> <input style='cursor: pointer;' class='gclh_rc_form' type='button' value='close' id='rc_close_button'>";
+            html += "<img id='rc_doing' src='' title='' alt='' style='margin-top: 4px; margin-left: -25px; position: absolute;' /><input class='gclh_rc_form' type='button' value='reset' id='rc_reset_button'> <input class='gclh_rc_form' type='button' value='close' id='rc_close_button'>";
             html += "</div>";
             html += "<pre class='gclh_form' style='display: block; height: 220px; overflow: auto; margin-bottom: 0px; font-size: 12px;' type='text' value='' id='rc_configData' contenteditable='true'></pre>";
             html += "</div>";
             html += "</div>";
+
+            html += "<div id='gclh_config_content_thanks'>";
+            html += "<div class='gclh_thanks_area'>";
+            html += "There are numerous persons who have shaped and advanced the tool with their time and their know-how. Many thanks to all of you!<br><br>";
+            html += "<table class='gclh_thanks_table'>";
+            html += "    <thead>";
+            html += "        <tr><th></th><th><span>Project Management</span></th><th><span>Development Lead</span></th><th><span>Development</span></th><th><span>Bug Reporting</span>" + show_help3("Bugs reported to the issue system on GitHub.") + "</th></tr>";
+            html += "    </thead>";
+            html += "    <tbody>";
+//--> $$006
+            // Bezeichnung:         GC Name                 Abw. GitHub Name   ProjM  DevL   Dev    BugR   Separator
+            html += thanksLineBuild("Ruko2010",             "",                true,  true,  false, true,  false);
+            html += thanksLineBuild("2Abendsegler",         "",                true,  true,  false, true,  true );
+            // Rangliste Development von hier https://github.com/2Abendsegler/GClh/graphs/contributors.
+            html += thanksLineBuild("CachingFoX",           "",                false, false, true,  true,  false);
+            html += thanksLineBuild("Herr Ma",              "MarcusBi",        false, false, true,  true,  false);
+            html += thanksLineBuild("DrakMrak",             "",                false, false, true,  false, false);
+            html += thanksLineBuild("Dratenik",             "",                false, false, true,  false, false);
+            html += thanksLineBuild("radlerandi",           "",                false, false, true,  false, false);
+            html += thanksLineBuild("Nicole1338",           "",                false, false, true,  false, false);
+            html += thanksLineBuild("Bananeweizen",         "",                false, false, true,  false, false);
+            html += thanksLineBuild("ramirez_",             "ramirezhr",       false, false, true,  false, false);
+            html += thanksLineBuild("king-ton",             "",                false, false, true,  false, false);
+            html += thanksLineBuild("dontpänic",            "haarspalter",     false, false, true,  false, true );
+            // Bug Reporting alphabetisch.
+            html += thanksLineBuild("arbor95",              "",                false, false, false, true,  false);
+            html += thanksLineBuild("barnold",              "barnoldGEOC",     false, false, false, true,  false);
+            html += thanksLineBuild("BlueEagle23",          "",                false, false, false, true,  false);
+            html += thanksLineBuild("Cappa-d",              "",                false, false, false, true,  false);
+            html += thanksLineBuild("",                     "gboye",           false, false, false, true,  false);
+            html += thanksLineBuild("Die Batzen",           "DieBatzen",       false, false, false, true,  false);
+            html += thanksLineBuild("Donnerknispel",        "",                false, false, false, true,  false);
+            html += thanksLineBuild("Jipem",                "",                false, false, false, true,  false);
+            html += thanksLineBuild("Magpie42",             "MagpieFourtyTwo", false, false, false, true,  false);
+            html += thanksLineBuild("☺Mitchsa & firefly70", "Mitchsa",         false, false, false, true,  false);
+            html += thanksLineBuild("Pontiac_CZ",           "PontiacCZ",       false, false, false, true,  false);
+            html += thanksLineBuild("RoRo",                 "RolandRosenfeld", false, false, false, true,  false);
+            html += thanksLineBuild("stepborc",             "",                false, false, false, true,  false);
+            html += thanksLineBuild("V60",                  "V60GC",           false, false, false, true,  false);
+            html += thanksLineBuild("winkamol",             "",                false, false, false, true,  false);
+            var thanksLastUpdate = "23.05.2019";
+//<-- $$006
+            html += "    </tbody>";
+            html += "</table>";
+            html += "<span style='float: right; font-size: 10px;'>Last update: " + thanksLastUpdate + " </span>";
+            html += "<div class='gclh_thanks_area_button'>";
+            html += "<br><input class='gclh_thanks_form' type='button' value='close' id='thanks_close_button'>";
+            html += "</div></div></div>";
 
             html += "<div id='gclh_config_content3'>";
             html += "<br>";
@@ -10016,7 +10386,6 @@ var mainGC = function() {
             html += checkboxy('settings_show_sums_in_bookmark_lists', 'Show number of caches in bookmark lists') + show_help("With this option the number of caches and the number of selected caches in the categories \"All\", \"Found\", \"Archived\" and \"Deactivated\", corresponding to the select buttons, are shown in bookmark lists at the end of the list.") + "<br>";
             html += content_settings_submit_log_button.replace("log_button","log_buttonX0");
             html += newParameterOn2;
-            html += checkboxy('settings_compact_layout_list_of_bm_lists', 'Show compact layout in list of bookmark lists') + "<br>";
             html += checkboxy('settings_compact_layout_bm_lists', 'Show compact layout in bookmark lists') + "<br>";
             html += newParameterVersionSetzen(0.8) + newParameterOff;
             html += newParameterOn3;
@@ -10266,6 +10635,9 @@ var mainGC = function() {
                 html += "  <option value='" + i + "' " + (settings_show_latest_logs_symbols_count == i ? "selected=\"selected\"" : "") + ">" + i + "</option>";
             }
             html += "</select> latest logs symbols at the top" + show_help("With this option, the choosen count of the latest logs symbols is shown at the top of the cache listing.<br><br>" + t_reqLlwG) + "<br>";
+            html += newParameterOn3;
+            html += checkboxy('settings_show_log_totals', 'Show the log totals symbols at the top') + "<br>";
+            html += newParameterVersionSetzen(0.9) + newParameterOff;
             html += checkboxy('settings_show_remove_ignoring_link', 'Show \"Stop Ignoring\", if cache is already ignored') + show_help("This option replace the \"Ignore\" link description with the \"Stop Ignoring\" link description in the cache listing, if the cache is already ignored.") + prem + "<br>";
             html += checkboxy('settings_map_overview_build', 'Show cache location in overview map') + show_help("With this option there will be an additional map top right in the cache listing as an overview of the cache location. This was available earlier on GC standard.") + "<br>";
             html += newParameterOn3;
@@ -10282,6 +10654,9 @@ var mainGC = function() {
             html += newParameterVersionSetzen(0.9) + newParameterOff;
             html += checkboxy('settings_show_vip_list', 'Show VIP list') + show_help("The VIP list is a list, displayed at the right side on a cache listing. You can add any user to your VIP list by clicking the little VIP icon beside the user. If it is green, this person is a VIP. The VIP list only shows VIPs and the logs of VIPs, which already posted a log to this cache. With this option you are able to see which of your VIPs already found this cache. On your dashboard page there is an overview of all your VIPs.<br>(VIP: Very important person)") + "<br>";
             html += "&nbsp; " + checkboxy('settings_show_owner_vip_list', 'Show owner in VIP list')  + show_help("If you enable this option, the owner is a VIP for the cache, so you can see, what happened with the cache (disable, maint, enable, ...). Then the owner is shown not only in VIP list but also in VIP logs.<br>(VIP: Very important person)<br><br>" + t_reqSVl)+ "<br>";
+            html += newParameterOn3;
+            html += "&nbsp; " + checkboxy('settings_show_reviewer_as_vip', 'Show reviewer/publisher in VIP list')  + show_help("If you enable this option, the reviewer or publisher of the cache is a VIP for the cache.<br><br>" + t_reqSVl)+ "<br>";
+            html += newParameterVersionSetzen(0.9) + newParameterOff;
             html += "&nbsp; " + checkboxy('settings_show_long_vip', 'Show long VIP list (one row per log)') + show_help("This is another type of displaying the VIP list. If you disable this option you get the short list, one row per VIP and the logs as icons beside the VIP. If you enable this option, there is a row for every log.<br>(VIP: Very important person)<br><br>" + t_reqSVl) + "<br>";
             html += "&nbsp; " + checkboxy('settings_vip_show_nofound', 'Show a list of VIPs who have not found the cache') + "<br>";
             html += "&nbsp; " + checkboxy('settings_make_vip_lists_hideable', 'Make VIP lists in listing hideable') + show_help("With this option you can hide and show the VIP lists \"VIP-List\" and \"VIP-List not found\" in cache listing with one click.<br>(VIP: Very important person)<br><br>" + t_reqSVl) + "<br>";
@@ -10593,9 +10968,9 @@ var mainGC = function() {
             // footer
             html += "<br><br>";
             html += "&nbsp;" + "<input class='gclh_form' type='button' value='" + setValueInSaveButton() + "' id='btn_save'> <input class='gclh_form' type='button' value='save & upload' id='btn_saveAndUpload'> <input class='gclh_form' type='button' value='" + setValueInCloseButton() + "' id='btn_close2'>";
-            html += "<br><div align='right' class='gclh_small' style='float: right; padding-top: 5px;'>License: <a href='"+urlDocu+"license.md#readme' target='_blank' title='GNU General Public License Version 2'>GPLv2</a>, Warranty: <a href='"+urlDocu+"warranty.md#readme' target='_blank' title='GC little helper comes with ABSOLUTELY NO WARRANTY'>NO</a></div><br>";
+            html += "<br><div align='right' class='gclh_small' style='float: right; padding-top: 5px;'>License: <a href='"+urlDocu+"license.md#readme' target='_blank' title='GNU General Public License Version 2'>GPLv2</a> | Warranty: <a href='"+urlDocu+"warranty.md#readme' target='_blank' title='GC little helper II comes with ABSOLUTELY NO WARRANTY'>NO</a></div><br>";
             var end = (new Date()).getFullYear();
-            html += "<div align='right' class='gclh_small' style='float: right;'>Copyright © 2010-2016 <a href='/profile/?u=Torsten-' target='_blank'>Torsten Amshove</a>, 2016-"+end+" <a href='/profile/?u=2Abendsegler' target='_blank'>2Abendsegler</a>, 2017-"+end+" <a href='/profile/?u=Ruko2010' target='_blank'>Ruko2010</a></div>";
+            html += "<div align='right' class='gclh_small' style='float: right;'>Copyright © 2010-2016 <a href='/profile/?u=Torsten-' target='_blank' title='GC profile for Torsten-'>Torsten Amshove</a>, 2016-"+end+" <a href='/profile/?u=2Abendsegler' target='_blank' title='GC profile for 2Abendsegler'>2Abendsegler</a>, 2017-"+end+" <a href='/profile/?u=Ruko2010' target='_blank' title='GC profile for Ruko2010'>Ruko2010</a></div>";
             html += "</div></div>";
 
             // Config Content: Aufbauen, Reset Area verbergen, Special Links Nearest List/Map, Own Trackables versorgen.
@@ -10603,6 +10978,7 @@ var mainGC = function() {
             div.innerHTML = html;
             $('body')[0].appendChild(div);
             $('#gclh_config_content2').hide();
+            $('#gclh_config_content_thanks').hide();
             $('#settings_show_homezone,#settings_use_gclh_layercontrol,#settings_bookmarks_top_menu,#settings_bookmarks_top_menu_h').addClass('shadowBig');
             setSpecialLinks();
 
@@ -10843,6 +11219,8 @@ var mainGC = function() {
             $('#rc_link')[0].addEventListener("click", rcPrepare, false);
             $('#rc_reset_button')[0].addEventListener("click", rcReset, false);
             $('#rc_close_button')[0].addEventListener("click", rcClose, false);
+            $('#thanks_link')[0].addEventListener("click", thanksShow, false);
+            $('#thanks_close_button')[0].addEventListener("click", gclh_showConfig, false);
             $('#gclh_linklist_link_1')[0].addEventListener("click", gclh_show_linklist, false);
             $('#gclh_linklist_link_2')[0].addEventListener("click", gclh_show_linklist, false);
             $('#btn_close2')[0].addEventListener("click", btnClose, false);
@@ -11319,7 +11697,6 @@ var mainGC = function() {
                 'settings_remove_banner_for_garminexpress',
                 'settings_remove_banner_blue',
                 'settings_compact_layout_bm_lists',
-                'settings_compact_layout_list_of_bm_lists',
                 'settings_compact_layout_pqs',
                 'settings_compact_layout_list_of_pqs',
                 'settings_compact_layout_nearest',
@@ -11355,6 +11732,8 @@ var mainGC = function() {
                 'settings_embedded_smartlink_ignorelist',
                 'settings_both_tabs_list_of_pqs_one_page',
                 'settings_past_events_on_bm',
+                'settings_show_log_totals',
+                'settings_show_reviewer_as_vip',
             );
 
             for (var i = 0; i < checkboxes.length; i++) {
@@ -11873,6 +12252,22 @@ var mainGC = function() {
         }
         setValue("show_box_"+stamm, (whatToDo == "show" ? false : true));
     }
+
+// Show config screen "thanks".
+    function thanksShow() {
+        if (document.getElementById('settings_overlay')) document.getElementById('settings_overlay').style.overflow = "hidden";
+        $('#gclh_config_content1').hide();
+        $('#gclh_config_content3').hide();
+        $('#gclh_config_content_thanks').show(600);
+    }
+
+// Build line with user and contribution on config screen "thanks".
+    function thanksLineBuild(gcname, ghname, proj, devl, dev, err, sepa) {
+        return "<tr " + (sepa == true ? "class='separator'" : "") + ">" +
+               "<td>" + (gcname != "" ? "<a href='/profile/?u="+urlencode(gcname)+"' target='_blank' title='GC profile for "+gcname+"'>"+gcname+"</a>" : ghname) + "</td>" +
+               thanksFlagBuild(proj) + thanksFlagBuild(devl) + thanksFlagBuild(dev) + thanksFlagBuild(err) + "</tr>";
+    }
+    function thanksFlagBuild(flag) {return "<td><img src='" + (flag == true ? global_green_tick : "") + "'></td>";}
 
 //////////////////////////////
 // Config Reset Functions
